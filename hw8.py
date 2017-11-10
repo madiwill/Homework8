@@ -20,10 +20,9 @@ api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 # And we've provided the setup for your cache. But we haven't written any functions for you, so you have to be sure that any function that gets data from the internet relies on caching.
 CACHE_FNAME = "twitter_cache.json"
 try:
-    cache_file = open(CACHE_FNAME,'r')
-        cache_contents = cache_file.read()
-        cache_file.close()
-        CACHE_DICTION = json.loads(cache_contents)
+    cache_file_obj = open(CACHE_FNAME,'r')
+    cache_contents = cache_file_obj.read()
+    CACHE_DICTION = json.loads(cache_contents)
 except:
     CACHE_DICTION = {}
 
@@ -34,7 +33,20 @@ except:
 
 
 def get_tweets():
-##YOUR CODE HERE
+    unique_identifier = "twitter_{}".format(username)
+    if unique_identifier in CACHE_DICTION:
+        print('using cached data for', username)
+        twitter_results = CACHE_DICTION[unique_identifier]
+        pass
+    else:
+        print('getting data from internet for', username)
+        twitter_results = api.user_timeline(id = username)
+        CACHE_DICTION[unique_identifier] = twitter_results
+        f=open(CACHE_FNAME, 'w')
+        f.write(json.dumps(CACHE_DICTION))
+        f.close()
+
+    return CACHE_DICTION[unique_identifier]
 
 
 
@@ -50,18 +62,42 @@ def get_tweets():
 # Below we have provided interim outline suggestions for what to do, sequentially, in comments.
 
 # 1 - Make a connection to a new database tweets.sqlite, and create a variable to hold the database cursor.
-
+conn = sqlite3.connect('tweets.db')
+cur = conn.cursor()
 
 # 2 - Write code to drop the Tweets table if it exists, and create the table (so you can run the program over and over), with the correct (4) column names and appropriate types for each.
 # HINT: Remember that the time_posted column should be the TIMESTAMP data type!
+cur.execute('DROP TABLE IF EXISTS Tweets ')
+statement = 'CREATE TABLE IF NOT EXISTS '
+statement += 'Tweets (tweet_id INTEGER PRIMARY_KEY, author TEXT, time_posted TIMESTAMP, tweet_text TEXT, retweets INTEGER)'
+cur.execute(statement)
 
 # 3 - Invoke the function you defined above to get a list that represents a bunch of tweets from the UMSI timeline. Save those tweets in a variable called umsi_tweets.
-
+umsi_tweets = get_tweets("umsi")
 
 # 4 - Use a for loop, the cursor you defined above to execute INSERT statements, that insert the data from each of the tweets in umsi_tweets into the correct columns in each row of the Tweets database table.
+tweet_id = []
+author = []
+time_posted = []
+tweet_text = []
+retweets = []
 
+for tweet in umsi_tweets:
+    tweet_id.append(tweet['user']['id'])
+    author.append(tweet['user']['screen_name'])
+    time_posted.append(tweet['created_at'])
+    tweet_text.append(tweet['text'])
+    retweets.append(tweet['retweet_count'])
+
+tweet_list = zip(tweet_id, author, time_posted, tweet_text, retweets)
+
+x = 'INSERT INTO Tweets VALUES (?,?,?,?,?)' 
+
+for tweet in tweet_list:
+    cur.execute(x, tweet)
 
 #  5- Use the database connection to commit the changes to the database
+conn.commit()
 
 # You can check out whether it worked in the SQLite browser! (And with the tests.)
 
