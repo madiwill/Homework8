@@ -97,7 +97,7 @@ for tweet in tweet_list:
     cur.execute(x, tweet)
 
 #  5- Use the database connection to commit the changes to the database
-conn.commit()
+conn.commit() #always commit
 
 # You can check out whether it worked in the SQLite browser! (And with the tests.)
 
